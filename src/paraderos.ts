@@ -1,0 +1,73 @@
+export interface Paradero {
+  id: number
+  nombre: string
+  lat: number
+  lng: number
+}
+
+/**
+ * Paraderos de la Línea 1 generados cada 200 metros a lo largo de la ruta real
+ * usando la fórmula de Haversine. Editable independientemente.
+ */
+export const PARADEROS_LINEA_1: Paradero[] = [
+  { id: 1, nombre: "Paradero 1", lat: -13.620936, lng: -72.861797 },
+  { id: 2, nombre: "Paradero 2", lat: -13.619341, lng: -72.860946 },
+  { id: 3, nombre: "Paradero 3", lat: -13.617987, lng: -72.861709 },
+  { id: 4, nombre: "Paradero 4", lat: -13.617004, lng: -72.860844 },
+  { id: 5, nombre: "Paradero 5", lat: -13.615802, lng: -72.859521 },
+  { id: 6, nombre: "Paradero 6", lat: -13.614538, lng: -72.858222 },
+  { id: 7, nombre: "Paradero 7", lat: -13.613065, lng: -72.857437 },
+  { id: 8, nombre: "Paradero 8", lat: -13.611719, lng: -72.856445 },
+  { id: 9, nombre: "Paradero 9", lat: -13.610129, lng: -72.855671 },
+  { id: 10, nombre: "Paradero 10", lat: -13.60851, lng: -72.855019 },
+  { id: 11, nombre: "Paradero 11", lat: -13.607081, lng: -72.855734 },
+  { id: 12, nombre: "Paradero 12", lat: -13.606005, lng: -72.857216 },
+  { id: 13, nombre: "Paradero 13", lat: -13.607337, lng: -72.858041 },
+  { id: 14, nombre: "Paradero 14", lat: -13.608792, lng: -72.859122 },
+  { id: 15, nombre: "Paradero 15", lat: -13.609965, lng: -72.860462 },
+  { id: 16, nombre: "Paradero 16", lat: -13.6105, lng: -72.862033 },
+  { id: 17, nombre: "Paradero 17", lat: -13.610955, lng: -72.863629 },
+  { id: 18, nombre: "Paradero 18", lat: -13.612571, lng: -72.864202 },
+  { id: 19, nombre: "Paradero 19", lat: -13.612229, lng: -72.865027 },
+  { id: 20, nombre: "Paradero 20", lat: -13.613793, lng: -72.865241 },
+  { id: 21, nombre: "Paradero 21", lat: -13.615093, lng: -72.865721 },
+  { id: 22, nombre: "Paradero 22", lat: -13.615454, lng: -72.867238 },
+  { id: 23, nombre: "Paradero 23", lat: -13.617189, lng: -72.866751 },
+  { id: 24, nombre: "Paradero 24", lat: -13.618308, lng: -72.868084 },
+  { id: 25, nombre: "Paradero 25", lat: -13.619374, lng: -72.869575 },
+  { id: 26, nombre: "Paradero 26", lat: -13.62044, lng: -72.871066 },
+  { id: 27, nombre: "Paradero 27", lat: -13.622065, lng: -72.871663 },
+  { id: 28, nombre: "Paradero 28", lat: -13.623726, lng: -72.872169 },
+  { id: 29, nombre: "Paradero 29", lat: -13.624299, lng: -72.873895 },
+  { id: 30, nombre: "Paradero 30", lat: -13.62431, lng: -72.875687 },
+  { id: 31, nombre: "Las Américas", lat: -13.624141, lng: -72.877529 },
+  { id: 32, nombre: "Paradero 32", lat: -13.624942, lng: -72.879089 },
+  { id: 33, nombre: "Paradero 33", lat: -13.625911, lng: -72.877576 },
+  { id: 34, nombre: "Paradero 34", lat: -13.627119, lng: -72.87621 },
+  { id: 35, nombre: "Paradero 35", lat: -13.628039, lng: -72.874758 },
+  { id: 36, nombre: "Paradero 36", lat: -13.629389, lng: -72.873581 },
+  { id: 37, nombre: "Paradero 37", lat: -13.630336, lng: -72.874378 },
+  { id: 38, nombre: "Paradero 38", lat: -13.630758, lng: -72.876178 },
+  { id: 39, nombre: "Paradero 39", lat: -13.631262, lng: -72.877954 },
+  { id: 40, nombre: "Paradero 40", lat: -13.631809, lng: -72.879717 },
+  { id: 41, nombre: "Paradero 41", lat: -13.632563, lng: -72.881306 },
+  { id: 42, nombre: "Paradero 42", lat: -13.63319, lng: -72.879589 },
+  { id: 43, nombre: "Paradero 43", lat: -13.633836, lng: -72.877865 },
+  { id: 44, nombre: "Paradero 44", lat: -13.634858, lng: -72.876673 },
+  { id: 45, nombre: "Paradero 45", lat: -13.636372, lng: -72.877203 },
+  { id: 46, nombre: "Paradero 46", lat: -13.636436, lng: -72.87905 },
+  { id: 47, nombre: "Paradero 47", lat: -13.637018, lng: -72.879334 },
+  { id: 48, nombre: "Paradero 48", lat: -13.638164, lng: -72.878657 },
+  { id: 49, nombre: "Paradero 49", lat: -13.63968, lng: -72.879307 },
+  { id: 50, nombre: "Paradero 50", lat: -13.640481, lng: -72.880952 },
+  { id: 51, nombre: "Paradero 51", lat: -13.640916, lng: -72.882747 },
+  { id: 52, nombre: "Paradero 52", lat: -13.640544, lng: -72.884436 },
+  { id: 53, nombre: "Paradero 53", lat: -13.639249, lng: -72.884457 },
+  { id: 54, nombre: "Paradero 54", lat: -13.638136, lng: -72.885171 },
+  { id: 55, nombre: "Paradero 55", lat: -13.638207, lng: -72.886769 },
+  { id: 56, nombre: "Paradero 56", lat: -13.639471, lng: -72.888086 },
+  { id: 57, nombre: "Paradero 57", lat: -13.639879, lng: -72.889455 },
+  { id: 58, nombre: "Paradero 58", lat: -13.639428, lng: -72.89043 },
+  { id: 59, nombre: "Paradero 59", lat: -13.638675, lng: -72.891905 },
+  { id: 60, nombre: "Paradero 60", lat: -13.638208, lng: -72.892102 },
+]

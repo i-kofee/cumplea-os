@@ -1,0 +1,10 @@
+{
+  "description": "Ayuda a pasajeros en Abancay a consultar llegadas de combis en tiempo real, seguir rutas y activar avisos por voz, con herramientas para conductores.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
