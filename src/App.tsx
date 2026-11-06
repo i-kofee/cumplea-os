@@ -343,7 +343,7 @@ function Login({ go }: { go: (s: Screen) => void }) {
     <div className="h-full overflow-y-auto px-6 pt-16 pb-8">
       <div className="flex flex-col items-center text-center">
         <div className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-[0_8px_20px_rgba(31,95,214,0.3)]" style={{ background: BLUE }}><Bus size={42} color="#FACC15" /></div>
-        <h1 className="mt-5 text-[28px] font-extrabold" style={{ color: NAVY }}>Combi Abancay</h1>
+        <h1 className="mt-5 text-[28px] font-extrabold" style={{ color: NAVY }}>goCombi</h1>
         <p className="mt-1 text-[15px] text-slate-500">Tu próxima combi, a tiempo</p>
       </div>
       <div className="mt-8 flex p-1 rounded-xl bg-slate-200/70">
