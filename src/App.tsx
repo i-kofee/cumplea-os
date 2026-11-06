@@ -62,8 +62,7 @@ const COLORES_LINEA: Record<number, string> = {
   4: '#7C3AED', // morado
 }
 
-function LeafletMap({ lineaId = null, onSeleccionParadero }: { lineaId?: number | null; onSeleccionParadero?: (nombre: string, minutos: number | null) => void }) {
-  const containerRef = useRef<HTMLDivElement>(null)
+function LeafletMap({ lineaId = null, onSeleccionParadero }: { lineaId?: number | null; onSeleccionParadero?: (nombre: string, minutosSubida: number | null, minutosBajada: number | null) => void }) {  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -97,13 +96,16 @@ function LeafletMap({ lineaId = null, onSeleccionParadero }: { lineaId?: number 
     }
 
     // ---- Rutas + combis animadas ----
+    // ---- Rutas + combis animadas (ida = sube, vuelta = baja) ----
     const boundsList: L.LatLngBounds[] = []
     const estados: Record<number, { coords: [number, number][]; tramo: number; progreso: number; marker: L.Marker }> = {}
+    const estadosVuelta: Record<number, { coords: [number, number][]; tramo: number; progreso: number; marker: L.Marker }> = {}
 
     features.forEach((feat, i) => {
       const id = feat.properties.combi
       const color = COLORES_LINEA[id] ?? '#2563EB'
       const coords: [number, number][] = feat.geometry.coordinates.map(([lng, lat]) => [lat, lng])
+      const coordsVuelta = [...coords].reverse()
 
       const polyline = L.polyline(coords, { color, weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }).addTo(map)
       boundsList.push(polyline.getBounds())
@@ -114,10 +116,20 @@ function LeafletMap({ lineaId = null, onSeleccionParadero }: { lineaId?: number 
         iconSize: [26, 26],
         iconAnchor: [13, 13],
       })
-      // cada combi arranca en un punto distinto para que no salgan todas juntas
+      const combiIconVuelta = L.divIcon({
+        className: 'combi-icon-vuelta',
+        html: `<div style="width:26px;height:26px;background:#ffffff;border:4px solid ${color};border-radius:50%;box-shadow:0 2px 8px rgba(18,40,90,0.4);display:flex;align-items:center;justify-content:center;"><div style="width:8px;height:8px;background:${color};border-radius:2px;"></div></div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+      })
+
       const tramoInicial = Math.floor((coords.length / 4) * i) % (coords.length - 1)
       const marker = L.marker(coords[tramoInicial], { icon: combiIcon, zIndexOffset: 1000 }).addTo(map)
       estados[id] = { coords, tramo: tramoInicial, progreso: 0, marker }
+
+      const tramoInicialVuelta = Math.floor((coordsVuelta.length / 4) * (i + 1)) % (coordsVuelta.length - 1)
+      const markerVuelta = L.marker(coordsVuelta[tramoInicialVuelta], { icon: combiIconVuelta, zIndexOffset: 1000 }).addTo(map)
+      estadosVuelta[id] = { coords: coordsVuelta, tramo: tramoInicialVuelta, progreso: 0, marker: markerVuelta }
     })
 
         let ultimo = performance.now()
@@ -125,7 +137,7 @@ function LeafletMap({ lineaId = null, onSeleccionParadero }: { lineaId?: number 
     const animar = (ahora: number) => {
       const dt = Math.min((ahora - ultimo) / 1000, 0.5)
       ultimo = ahora
-      Object.values(estados).forEach((e) => {
+      ;[...Object.values(estados), ...Object.values(estadosVuelta)].forEach((e) => {
         const n = e.coords.length
         let avance = VELOCIDAD_MS * dt
         let guardia = 0
@@ -171,9 +183,7 @@ function LeafletMap({ lineaId = null, onSeleccionParadero }: { lineaId?: number 
       return puntos
     }
 
-    const minutosHastaParadero = (id: number, punto: [number, number]) => {
-      const e = estados[id]
-      if (!e) return null
+    const minutosDesde = (e: { coords: [number, number][]; tramo: number; progreso: number }, punto: [number, number]) => {
       const ruta = e.coords
       const n = ruta.length
       let objetivo = 0, mejor = Infinity
@@ -195,6 +205,11 @@ function LeafletMap({ lineaId = null, onSeleccionParadero }: { lineaId?: number 
       return Math.ceil(dist / VELOCIDAD_REAL_MS / 60)
     }
 
+    const minutosHastaParadero = (id: number, punto: [number, number]) => {
+      const bajada = estados[id] ? minutosDesde(estados[id], punto) : null
+      const subida = estadosVuelta[id] ? minutosDesde(estadosVuelta[id], punto) : null
+      return { subida, bajada }
+    }
     const iconoParadero = (color: string) =>
       L.divIcon({
         className: 'paradero-icon',
@@ -228,7 +243,8 @@ function LeafletMap({ lineaId = null, onSeleccionParadero }: { lineaId?: number 
           const item: ParaderoMk = { marker, id, nombre: p.nombre, lat: p.lat, lng: p.lng, icon }
           marker.on('click', () => {
             paraderoSeleccionado = item
-            onSeleccionParadero?.(item.nombre, minutosHastaParadero(id, [item.lat, item.lng]))
+            const { subida, bajada } = minutosHastaParadero(id, [item.lat, item.lng])
+            onSeleccionParadero?.(item.nombre, subida, bajada)
           })
           paraderoMarkers.push(item)
         })
@@ -237,7 +253,10 @@ function LeafletMap({ lineaId = null, onSeleccionParadero }: { lineaId?: number 
 
     const liveUpdateId = setInterval(() => {
       const s = paraderoSeleccionado
-      if (s) onSeleccionParadero?.(s.nombre, minutosHastaParadero(s.id, [s.lat, s.lng]))
+      if (s) {
+        const { subida, bajada } = minutosHastaParadero(s.id, [s.lat, s.lng])
+        onSeleccionParadero?.(s.nombre, subida, bajada)
+      }
     }, 1000)
 
     // ---- Ubicación del usuario + botón "ubícame" ----
@@ -349,15 +368,23 @@ function Login({ go }: { go: (s: Screen) => void }) {
     </div>
   )
 }
-
+function LeyendaLineas() {
+  return (
+    <div className={`${card} absolute left-4 right-4 bottom-24 px-4 py-3 flex items-center justify-around z-20`}>
+      {LINES.map((l) => (
+        <div key={l.id} className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full shrink-0" style={{ background: l.color }} />
+          <span className="text-[13px] font-semibold" style={{ color: NAVY }}>{l.name}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
 function Inicio({ go, onLinea }: { go: (s: Screen) => void; onLinea: (id: number) => void }) {
   return (
     <div className="absolute inset-0">
       <LeafletMap />
-      <div className={`${card} absolute top-14 left-4 right-4 h-13 py-3.5 px-4 flex items-center gap-3 text-slate-400 z-20`}>
-        <Icon stroke={BLUE} d={<><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></>} />
-        <span className="text-[15px]">¿A dónde vas?</span>
-      </div>
+      <LeyendaLineas />
     </div>
   )
 }
@@ -365,8 +392,12 @@ function Inicio({ go, onLinea }: { go: (s: Screen) => void; onLinea: (id: number
 function Seguimiento({ go, lineaId }: { go: (s: Screen) => void; lineaId: number | null }) {
   const linea = LINES.find((x) => x.id === lineaId) ?? LINES[0]
   const [sinSenal, setSinSenal] = useState(false)
-    const [paraderoSel, setParaderoSel] = useState<{ nombre: string; minutos: number | null; t: number } | null>(null)
+       const [paraderoSel, setParaderoSel] = useState<{ nombre: string; minutosSubida: number | null; minutosBajada: number | null; t: number } | null>(null)
   const [avisoOn, setAvisoOn] = useState(false)
+  const [showHint, setShowHint] = useState(true)
+  const [sentido, setSentido] = useState<'subida' | 'bajada'>('subida')
+  const sentidoRef = useRef(sentido)
+  sentidoRef.current = sentido
   useEffect(() => {
     // Chrome pausa solo la síntesis tras un rato; esto la despierta
     const keep = setInterval(() => window.speechSynthesis?.resume(), 5000)
@@ -374,16 +405,26 @@ function Seguimiento({ go, lineaId }: { go: (s: Screen) => void; lineaId: number
   }, [])
   const [ventana, setVentana] = useState<string | null>(null)
   const selRef = useRef(paraderoSel)
-  const prevRef = useRef<{ nombre: string; minutos: number | null } | null>(null)
+  const prevRef = useRef<{ nombre: string; minutosSubida: number | null; minutosBajada: number | null } | null>(null)
   selRef.current = paraderoSel
+    useEffect(() => {
+    if (!showHint) return
+    const t = setTimeout(() => setShowHint(false), 6000)
+    return () => clearTimeout(t)
+  }, [showHint])
+
+  useEffect(() => { if (paraderoSel) setShowHint(false) }, [paraderoSel])
+  
 
     const hablar = () => {
     const s = selRef.current
-    if (!s || s.minutos === null) return
-    const llegando = s.minutos <= 1
+    if (!s) return
+    const minutos = sentidoRef.current === 'subida' ? s.minutosSubida : s.minutosBajada
+    if (minutos === null) return
+    const llegando = minutos <= 1
     const texto = llegando
       ? 'Tu combi está por llegar'
-      : `Tu combi llega en ${s.minutos} minutos`
+      : `Tu combi llega en ${minutos} minutos`
     setVentana(texto)
     setTimeout(() => setVentana(null), 5000)
     decir(texto)
@@ -398,17 +439,29 @@ function Seguimiento({ go, lineaId }: { go: (s: Screen) => void; lineaId: number
   }, [avisoOn])
   return (
     <div className="absolute inset-0">
-      <LeafletMap lineaId={lineaId}onSeleccionParadero={(nombre, minutos) => {
+      <LeafletMap lineaId={lineaId} onSeleccionParadero={(nombre, minutosSubida, minutosBajada) => {
         const prev = prevRef.current
-        if (prev && prev.nombre === nombre && prev.minutos !== null && minutos !== null && minutos > prev.minutos + 1) {
+        const actual = sentidoRef.current === 'subida' ? minutosSubida : minutosBajada
+        const anterior = prev ? (sentidoRef.current === 'subida' ? prev.minutosSubida : prev.minutosBajada) : null
+        if (prev && prev.nombre === nombre && anterior !== null && actual !== null && actual > anterior + 1) {
           setAvisoOn(false)
           setVentana('Tu combi ya pasó por este paradero')
           setTimeout(() => setVentana(null), 5000)
         }
-        prevRef.current = { nombre, minutos }
-        setParaderoSel({ nombre, minutos, t: Date.now() })
+        prevRef.current = { nombre, minutosSubida, minutosBajada }
+        setParaderoSel({ nombre, minutosSubida, minutosBajada, t: Date.now() })
       }} />
       <div className="absolute top-14 left-4 z-20"><Back onClick={() => go('inicio')} /></div>
+            {showHint && (
+        <div
+          onClick={() => setShowHint(false)}
+          className={`${card} absolute top-28 left-1/2 -translate-x-1/2 px-4 py-3 max-w-[260px] text-center z-40 shadow-xl`}
+        >
+          <p className="text-[13px] font-semibold" style={{ color: NAVY }}>
+            👆 Toca el punto amarillo más cercano a ti para ver cuándo llega tu combi
+          </p>
+        </div>
+      )}
             {ventana && (
         <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
           <div className={`${card} px-5 py-4 max-w-[260px] text-center shadow-2xl animate-alarm-enter`}>
@@ -418,13 +471,29 @@ function Seguimiento({ go, lineaId }: { go: (s: Screen) => void; lineaId: number
         </div>
       )}
       <div className={`${card} absolute left-4 right-4 bottom-24 p-5 z-20`}>
-        <p className="text-[13px] font-semibold" style={{ color: NAVY }}>{linea.name} · {linea.co}</p>
+        <div className="flex items-center justify-between">
+          <p className="text-[13px] font-semibold" style={{ color: NAVY }}>{linea.name} · {linea.co}</p>
+          <div className="flex p-0.5 rounded-lg bg-slate-100">
+            {([['subida', 'Subida'], ['bajada', 'Bajada']] as const).map(([k, l]) => (
+              <button
+                key={k}
+                onClick={() => setSentido(k)}
+                className={`px-2.5 h-7 rounded-md text-[12px] font-semibold transition ${sentido === k ? 'bg-white shadow-sm' : 'text-slate-500'}`}
+                style={sentido === k ? { color: BLUE } : undefined}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
         <p className="text-[13px] text-slate-500 mt-0.5">
           Tu paradero: {paraderoSel ? paraderoSel.nombre : 'Toca un paradero en el mapa'}
         </p>
         <div className="flex items-end justify-between mt-3">
           <p className="text-[34px] leading-none font-extrabold" style={{ color: BLUE }}>
-            {paraderoSel && paraderoSel.minutos !== null ? `Llega en ${paraderoSel.minutos} min` : '—'}
+            {paraderoSel && (sentido === 'subida' ? paraderoSel.minutosSubida : paraderoSel.minutosBajada) !== null
+              ? `Llega en ${sentido === 'subida' ? paraderoSel.minutosSubida : paraderoSel.minutosBajada} min`
+              : '—'}
           </p>
         </div>
         <div className="flex items-center flex-wrap gap-2 mt-1.5">
