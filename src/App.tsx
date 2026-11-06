@@ -370,7 +370,7 @@ function Login({ go }: { go: (s: Screen) => void }) {
 }
 function LeyendaLineas() {
   return (
-    <div className={`${card} absolute left-4 right-4 bottom-24 px-4 py-3 flex items-center justify-around z-20`}>
+       <div className={`${card} absolute left-4 right-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] px-4 py-3 flex items-center justify-around z-20`}>
       {LINES.map((l) => (
         <div key={l.id} className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-full shrink-0" style={{ background: l.color }} />
@@ -470,7 +470,7 @@ function Seguimiento({ go, lineaId }: { go: (s: Screen) => void; lineaId: number
           </div>
         </div>
       )}
-      <div className={`${card} absolute left-4 right-4 bottom-24 p-5 z-20`}>
+      <div className={`${card} absolute left-4 right-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] p-5 z-20`}>
         <div className="flex items-center justify-between">
           <p className="text-[13px] font-semibold" style={{ color: NAVY }}>{linea.name} · {linea.co}</p>
           <div className="flex p-0.5 rounded-lg bg-slate-100">
@@ -655,7 +655,7 @@ function Rutas({ go, onVer }: { go: (s: Screen) => void; onVer: (id: number) => 
         ))}
       </div>
       {sel !== null && (
-        <div className="absolute left-5 right-5 bottom-24">
+        <div className="absolute left-5 right-5 bottom-[calc(6rem+env(safe-area-inset-bottom))]">
           <button onClick={() => sel !== null && sel !== 0 && onVer(sel)} className="w-full h-12 rounded-xl text-white font-semibold shadow-[0_8px_20px_rgba(31,95,214,0.35)]" style={{ background: BLUE }}>Ver combi activa</button>
         </div>
       )}
@@ -903,8 +903,8 @@ export default function App() {
   const showTabs = ['inicio', 'rutas', 'perfil', 'seguimiento', 'voz'].includes(s)
   const active = s === 'seguimiento' || s === 'voz' ? null : s
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="relative w-[390px] h-[844px] max-w-full overflow-hidden rounded-[44px] shadow-2xl" style={{ background: '#F8FAFC' }}>
+        <div className="min-h-dvh flex items-center justify-center sm:p-4">
+      <div className="relative w-full h-dvh sm:w-[390px] sm:h-[844px] sm:max-h-[90dvh] overflow-hidden sm:rounded-[44px] shadow-2xl" style={{ background: '#F8FAFC' }}>
         {s === 'login' && <Login go={go} />}
         {s === 'inicio' && <Inicio go={go} onLinea={verLinea} />}
         {s === 'seguimiento' && <Seguimiento go={go} lineaId={lineaSel} />}
@@ -914,7 +914,10 @@ export default function App() {
         {s === 'turno' && <Turno go={go} />}
         {s === 'turno_activo' && <TurnoActivo go={go} />}
         {showTabs && s !== 'voz' && (
-          <nav className="absolute bottom-0 inset-x-0 h-[84px] bg-white border-t border-slate-100 flex pt-2.5 z-30">
+          <nav
+            className="absolute bottom-0 inset-x-0 bg-white border-t border-slate-100 flex pt-2.5 z-30"
+            style={{ height: 'calc(84px + env(safe-area-inset-bottom))', paddingBottom: 'env(safe-area-inset-bottom)' }}
+          >
             {tabs.map((t) => (
               <button key={t.id} onClick={() => go(t.id)} className="flex-1 flex flex-col items-center gap-1 h-12" style={{ color: active === t.id ? BLUE : '#94A3B8' }}>
                 <Icon d={t.icon} />
