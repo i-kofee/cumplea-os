@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ChangeEventHandler, type ReactNode } from 'react'
 import L from 'leaflet'
 import routeGeoJson from './route.json'
 import { PARADEROS_LINEA_1 } from './paraderos'
 
 const BLUE = '#1F5FD6', NAVY = '#12285A', GREEN = '#16A34A'
-type Screen = 'login' | 'inicio' | 'seguimiento' | 'voz' | 'rutas' | 'perfil' | 'turno' | 'turno_activo'
+type Screen = 'login' | 'registro' | 'inicio' | 'seguimiento' | 'voz' | 'rutas' | 'perfil' | 'turno' | 'turno_activo'
 
 const LINES = [
   { id: 1, name: 'Línea 1', co: 'Empresa Los Andes', min: 4, color: '#1F5FD6', desc: 'Empresa Los Andes · Las Américas · Av. Manuel Seoane · Miraflores' },
@@ -330,15 +330,56 @@ const tabs: { id: Screen; label: string; icon: ReactNode }[] = [
   { id: 'perfil', label: 'Perfil', icon: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></> },
 ]
 
-const Field = ({ label, type = 'text' }: { label: string; type?: string }) => (
+type Cuenta = { nombre: string; usuario: string; clave: string; creadaEn: string }
+const CUENTAS_KEY = 'gocombi_cuentas'
+
+// Solo para demostración: la contraseña queda en el navegador, no va a un servidor y esto no es seguridad real.
+function leerCuentas(): { cuentas: Cuenta[]; error: string } {
+  try {
+    const cuentas: unknown = JSON.parse(localStorage.getItem(CUENTAS_KEY) ?? '[]')
+    if (!Array.isArray(cuentas) || !cuentas.every((cuenta) => cuenta && typeof cuenta.nombre === 'string' && typeof cuenta.usuario === 'string' && typeof cuenta.clave === 'string' && typeof cuenta.creadaEn === 'string')) {
+      throw new Error('Cuentas inválidas')
+    }
+    return { cuentas, error: '' }
+  } catch {
+    return { cuentas: [], error: 'No pudimos leer las cuentas guardadas. Revisa el almacenamiento de tu navegador e inténtalo de nuevo.' }
+  }
+}
+
+function normalizarUsuario(usuario: string) {
+  const valor = usuario.trim().toLowerCase()
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor)) return valor
+  const celular = valor.replace(/[\s-]/g, '')
+  return /^9\d{8}$/.test(celular) ? celular : ''
+}
+
+const Field = ({ label, type = 'text', value, onChange }: { label: string; type?: string; value?: string; onChange?: ChangeEventHandler<HTMLInputElement> }) => (
   <label className="block">
     <span className="text-[13px] font-medium text-slate-500">{label}</span>
-    <input type={type} className="mt-1.5 w-full h-12 rounded-xl border border-slate-200 bg-white px-4 text-[15px] outline-none focus:border-[#1F5FD6]" style={{ color: NAVY }} />
+    <input type={type} value={value} onChange={onChange} className="mt-1.5 w-full h-12 rounded-xl border border-slate-200 bg-white px-4 text-[15px] outline-none focus:border-[#1F5FD6]" style={{ color: NAVY }} />
   </label>
 )
 
 function Login({ go }: { go: (s: Screen) => void }) {
   const [t, setT] = useState<'p' | 'c'>('p')
+  const [usuario, setUsuario] = useState('')
+  const [clave, setClave] = useState('')
+  const [error, setError] = useState('')
+  const [sinCuentas, setSinCuentas] = useState(false)
+
+  const ingresar = () => {
+    const { cuentas, error: errorLectura } = leerCuentas()
+    setSinCuentas(false)
+    if (errorLectura) { setError(errorLectura); return }
+    const usuarioNormalizado = normalizarUsuario(usuario)
+    if (!usuarioNormalizado || !cuentas.some((cuenta) => cuenta.usuario === usuarioNormalizado && cuenta.clave === clave)) {
+      setError('Correo/celular o contraseña incorrectos')
+      setSinCuentas(cuentas.length === 0)
+      return
+    }
+    go('inicio')
+  }
+
   return (
     <div className="h-full overflow-y-auto px-6 pt-16 pb-8">
       <div className="flex flex-col items-center text-center">
@@ -354,17 +395,71 @@ function Login({ go }: { go: (s: Screen) => void }) {
         ))}
       </div>
       <div className="mt-6 space-y-4">
-        {t === 'p' ? <><Field label="Correo o celular" /><Field label="Contraseña" type="password" /></> : <><Field label="Usuario o DNI" /><Field label="Contraseña" type="password" /></>}
+        {t === 'p' ? <><Field key="usuario-pasajero" label="Correo o celular" value={usuario} onChange={(e) => { setUsuario(e.target.value); setError(''); setSinCuentas(false) }} /><Field key="clave-pasajero" label="Contraseña" type="password" value={clave} onChange={(e) => { setClave(e.target.value); setError(''); setSinCuentas(false) }} /></> : <><Field label="Usuario o DNI" /><Field label="Contraseña" type="password" /></>}
       </div>
       {t === 'p' ? (
         <>
-          <button onClick={() => go('inicio')} className="mt-6 w-full h-12 rounded-xl text-white font-semibold" style={{ background: BLUE }}>Ingresar</button>
-          <button className="mt-4 w-full text-sm font-semibold" style={{ color: BLUE }}>Crear cuenta</button>
+          {error && <p role="alert" className="mt-4 text-[13px] text-red-500">{error}</p>}
+          {sinCuentas && <p className="mt-1 text-[13px] text-slate-500">Crea una cuenta para comenzar.</p>}
+          <button onClick={ingresar} className="mt-6 w-full h-12 rounded-xl text-white font-semibold" style={{ background: BLUE }}>Ingresar</button>
+          <button onClick={() => go('registro')} className="mt-4 w-full text-sm font-semibold" style={{ color: BLUE }}>Crear cuenta</button>
           <button onClick={() => go('inicio')} className="mt-3 w-full h-12 rounded-xl bg-white border border-slate-200 font-semibold" style={{ color: NAVY }}>Continuar sin cuenta</button>
         </>
       ) : (
         <button onClick={() => go('turno')} className="mt-6 w-full h-12 rounded-xl text-white font-semibold" style={{ background: GREEN }}>Ingresar como conductor</button>
       )}
+    </div>
+  )
+}
+function Registro({ go }: { go: (s: Screen) => void }) {
+  const [nombre, setNombre] = useState('')
+  const [usuario, setUsuario] = useState('')
+  const [clave, setClave] = useState('')
+  const [confirmacion, setConfirmacion] = useState('')
+  const [error, setError] = useState('')
+
+  const crearCuenta = () => {
+    setError('')
+    const nombreLimpio = nombre.trim()
+    const usuarioNormalizado = normalizarUsuario(usuario)
+    if (!nombreLimpio) { setError('Ingresa tu nombre.'); return }
+    if (nombreLimpio.length < 2) { setError('El nombre debe tener al menos 2 caracteres.'); return }
+    if (!usuario.trim()) { setError('Ingresa tu correo o celular.'); return }
+    if (!usuarioNormalizado) { setError('Ingresa un correo válido o un celular peruano de 9 dígitos que empiece con 9.'); return }
+    if (clave.length < 6) { setError('La contraseña debe tener al menos 6 caracteres.'); return }
+    if (clave !== confirmacion) { setError('Las contraseñas no coinciden.'); return }
+
+    const { cuentas, error: errorLectura } = leerCuentas()
+    if (errorLectura) { setError(errorLectura); return }
+    if (cuentas.some((cuenta) => cuenta.usuario === usuarioNormalizado)) {
+      setError('Ya existe una cuenta con ese correo o celular')
+      return
+    }
+    try {
+      localStorage.setItem(CUENTAS_KEY, JSON.stringify([...cuentas, { nombre: nombreLimpio, usuario: usuarioNormalizado, clave, creadaEn: new Date().toISOString() }]))
+    } catch {
+      setError('No pudimos guardar tu cuenta. Revisa el almacenamiento de tu navegador e inténtalo de nuevo.')
+      return
+    }
+    go('inicio')
+  }
+
+  return (
+    <div className="h-full overflow-y-auto px-6 pt-16 pb-8">
+      <Back onClick={() => go('login')} />
+      <h1 className="mt-5 text-[28px] font-extrabold" style={{ color: NAVY }}>Crear cuenta</h1>
+      <p className="mt-1 text-[15px] text-slate-500">Regístrate para viajar con goCombi</p>
+      <form onSubmit={(e) => { e.preventDefault(); crearCuenta() }} className={`${card} mt-8 p-5`}>
+        <div className="space-y-4">
+          <Field label="Nombre" value={nombre} onChange={(e) => { setNombre(e.target.value); setError('') }} />
+          <Field label="Correo o celular" value={usuario} onChange={(e) => { setUsuario(e.target.value); setError('') }} />
+          <Field label="Contraseña" type="password" value={clave} onChange={(e) => { setClave(e.target.value); setError('') }} />
+          <Field label="Confirmar contraseña" type="password" value={confirmacion} onChange={(e) => { setConfirmacion(e.target.value); setError('') }} />
+        </div>
+        {error && <p role="alert" className="mt-4 text-[13px] text-red-500">{error}</p>}
+        <button type="submit" className="mt-6 w-full h-12 rounded-xl text-white font-semibold" style={{ background: BLUE }}>Crear cuenta</button>
+      </form>
+      <button onClick={() => go('login')} className="mt-4 w-full text-sm font-semibold" style={{ color: BLUE }}>¿Ya tienes cuenta? Inicia sesión</button>
     </div>
   )
 }
@@ -906,6 +1001,7 @@ export default function App() {
         <div className="min-h-dvh flex items-center justify-center sm:p-4">
       <div className="relative w-full h-dvh sm:w-[390px] sm:h-[844px] sm:max-h-[90dvh] overflow-hidden sm:rounded-[44px] shadow-2xl" style={{ background: '#F8FAFC' }}>
         {s === 'login' && <Login go={go} />}
+        {s === 'registro' && <Registro go={go} />}
         {s === 'inicio' && <Inicio go={go} onLinea={verLinea} />}
         {s === 'seguimiento' && <Seguimiento go={go} lineaId={lineaSel} />}
         {s === 'voz' && <Voz go={go} />}
